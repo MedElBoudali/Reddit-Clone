@@ -1,4 +1,4 @@
-import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } from 'type-graphql';
+import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Resolver } from 'type-graphql';
 import { User } from '../entities/User';
 import { MyContext } from 'src/types';
 import argon2 from 'argon2';
@@ -30,12 +30,6 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
-  //    Get user
-  @Query(() => User, { nullable: true })
-  getUser(@Arg('id') id: number, @Ctx() { em }: MyContext): Promise<User | null> {
-    return em.findOne(User, { id });
-  }
-
   //    Register
   @Mutation(() => UserResponse)
   async register(
@@ -50,16 +44,19 @@ export class UserResolver {
     }
     const hashedPassword = await argon2.hash(userInputs.password);
     const user = em.create(User, { username: userInputs.username, password: hashedPassword });
-    await em.persistAndFlush(user);
+    try {
+      await em.persistAndFlush(user);
+    } catch (error) {
+      if (error.code === '23505') {
+        return { errors: [{ field: 'username', message: 'username already exist' }] };
+      }
+    }
     return { user };
   }
 
   //  Login
   @Mutation(() => UserResponse)
-  async login(
-    @Arg('userIputs') userInputs: userInputs,
-    @Ctx() { em }: MyContext
-  ): Promise<UserResponse> {
+  async login(@Arg('userIputs') userInputs: userInputs, @Ctx() { em }: MyContext) {
     const user = await em.findOne(User, { username: userInputs.username });
     if (!user) {
       return { errors: [{ field: 'username', message: "username doesn't exist!" }] };
@@ -68,6 +65,6 @@ export class UserResolver {
     if (!isMatch) {
       return { errors: [{ field: 'password', message: "password doesn't match!" }] };
     }
-    return { user: user };
+    return { user };
   }
 }
