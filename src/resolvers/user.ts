@@ -3,6 +3,7 @@ import { User } from '../entities/User';
 import { MyContext } from 'src/types';
 import argon2 from 'argon2';
 
+// adding class istead of using @Arg too many times
 @InputType()
 class userInputs {
   @Field()
