@@ -7,6 +7,7 @@ import { ApolloServer } from 'apollo-server-express';
 import { buildSchema } from 'type-graphql';
 import { __listenMessage__, __port__ } from './constants';
 import { PostResolver } from './resolvers/post';
+import { UserResolver } from './resolvers/user';
 
 const main = async () => {
   // Migrating table
@@ -20,7 +21,7 @@ const main = async () => {
 
   // graphql
   const apolloServer = new ApolloServer({
-    schema: await buildSchema({ resolvers: [PostResolver], validate: false }),
+    schema: await buildSchema({ resolvers: [PostResolver, UserResolver], validate: false }),
     context: () => ({ em: orm.em })
   });
 
