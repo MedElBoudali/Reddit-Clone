@@ -1,4 +1,4 @@
-import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Resolver } from 'type-graphql';
+import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } from 'type-graphql';
 import { User } from '../entities/User';
 import { MyContext } from 'src/types';
 import argon2 from 'argon2';
@@ -31,11 +31,21 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @Query(() => User, { nullable: true })
+  async me(@Ctx() { em, req }: MyContext) {
+    if (!req.session!.userId) {
+      // you are not loged in
+      return null;
+    }
+    const user = await em.findOne(User, { id: req.session!.userId });
+    return user;
+  }
+
   //    Register
   @Mutation(() => UserResponse)
   async register(
     @Arg('userIputs') userInputs: userInputs,
-    @Ctx() { em }: MyContext
+    @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
     if (userInputs.username.length <= 2) {
       return { errors: [{ field: 'username', message: 'Length should be greater than 2' }] };
@@ -52,12 +62,14 @@ export class UserResolver {
         return { errors: [{ field: 'username', message: 'username already exist' }] };
       }
     }
+    // Login after registration by adding userId to cookies
+    req.session!.userId = user.id;
     return { user };
   }
 
   //  Login
   @Mutation(() => UserResponse)
-  async login(@Arg('userIputs') userInputs: userInputs, @Ctx() { em }: MyContext) {
+  async login(@Arg('userIputs') userInputs: userInputs, @Ctx() { em, req }: MyContext) {
     const user = await em.findOne(User, { username: userInputs.username });
     if (!user) {
       return { errors: [{ field: 'username', message: "username doesn't exist!" }] };
@@ -66,6 +78,7 @@ export class UserResolver {
     if (!isMatch) {
       return { errors: [{ field: 'password', message: "password doesn't match!" }] };
     }
+    req.session!.userId = user.id;
     return { user };
   }
 }
