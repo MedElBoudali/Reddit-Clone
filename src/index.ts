@@ -11,6 +11,7 @@ import redis from 'redis';
 import session from 'express-session';
 import connectRedis from 'connect-redis';
 import { MyContext } from './types';
+import cors from 'cors';
 
 const main = async () => {
   // Migrating table
@@ -22,6 +23,7 @@ const main = async () => {
   // Redis
   const RedisStore = connectRedis(session);
   const redisClient = redis.createClient();
+  app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
   app.use(
     session({
       name: 'gid',
@@ -44,7 +46,7 @@ const main = async () => {
     context: ({ req, res }): MyContext => ({ em: orm.em, req, res })
   });
 
-  apolloServer.applyMiddleware({ app });
+  apolloServer.applyMiddleware({ app, cors: false });
   //
 
   app.use((err: Error, _: Request, res: Response, _2: NextFunction) => {
