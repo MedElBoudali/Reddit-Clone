@@ -2,6 +2,7 @@ import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } fro
 import { User } from '../entities/User';
 import { MyContext } from 'src/types';
 import argon2 from 'argon2';
+import { EntityManager } from '@mikro-orm/postgresql';
 
 // adding class istead of using @Arg too many times
 @InputType()
@@ -54,9 +55,24 @@ export class UserResolver {
       return { errors: [{ field: 'password', message: 'Length should be greater than 2' }] };
     }
     const hashedPassword = await argon2.hash(userInputs.password);
-    const user = em.create(User, { username: userInputs.username, password: hashedPassword });
+    // Before using builder
+    // const user = em.create(User, { username: userInputs.username, password: hashedPassword });
+    // after query builder
+    let user;
     try {
-      await em.persistAndFlush(user);
+      // await em.persistAndFlush(user);
+      // using query builder
+      const result = await (em as EntityManager)
+        .createQueryBuilder(User)
+        .getKnexQuery()
+        .insert({
+          username: userInputs.username,
+          password: hashedPassword,
+          created_at: new Date(),
+          updated_at: new Date()
+        })
+        .returning('*');
+      user = result[0];
     } catch (error) {
       if (error.code === '23505') {
         return { errors: [{ field: 'username', message: 'username already exist' }] };

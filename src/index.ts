@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { MikroORM } from '@mikro-orm/core';
 import microConfig from './config/mikro-orm.config';
-import express, { Request, Response, NextFunction } from 'express';
+import express from 'express';
 import { ApolloServer } from 'apollo-server-express';
 import { buildSchema } from 'type-graphql';
 import { __listenMessage__, __port__, __prod__ } from './config/constants';
@@ -25,6 +25,7 @@ const main = async () => {
   const redisClient = redis.createClient();
   app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
   app.use(
+    // Redis
     session({
       name: 'gid',
       store: new RedisStore({ client: redisClient, disableTouch: true }),
@@ -38,6 +39,20 @@ const main = async () => {
       secret: 'fzefzcefevcczgjnkukjgscercqzgsevhevcg',
       resave: false
     })
+    // PG
+    // session({
+    //   name: 'gid',
+    //   store: new (require('connect-pg-simple')(session))({ tableName: 'session' }),
+    //   cookie: {
+    //     maxAge: 1000 * 60 * 60 * 24 * 365 * 10, //10 years
+    //     httpOnly: true,
+    //     sameSite: 'lax', // protecting against csrf
+    //     secure: __prod__ // cookie works only on https
+    //   },
+    //   saveUninitialized: false,
+    //   secret: 'fzefzcefevcczgjnkukjgscercqzgsevhevcg',
+    //   resave: false
+    // })
   );
 
   // graphql server
@@ -49,9 +64,9 @@ const main = async () => {
   apolloServer.applyMiddleware({ app, cors: false });
   //
 
-  app.use((err: Error, _: Request, res: Response, _2: NextFunction) => {
-    res.status(500).json({ message: err.message });
-  });
+  // app.use((err: Error, _: Request, res: Response, _2: NextFunction) => {
+  //   res.status(500).json({ message: err.message });
+  // });
 
   app.listen(__port__, () => console.log(__listenMessage__(__port__)));
 };
