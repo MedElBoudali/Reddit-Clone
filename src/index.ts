@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { MikroORM } from '@mikro-orm/core';
 import microConfig from './config/mikro-orm.config';
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { ApolloServer } from 'apollo-server-express';
 import { buildSchema } from 'type-graphql';
 import { __listenMessage__, __port__, __prod__ } from './config/constants';
@@ -64,9 +64,9 @@ const main = async () => {
   apolloServer.applyMiddleware({ app, cors: false });
   //
 
-  // app.use((err: Error, _: Request, res: Response, _2: NextFunction) => {
-  //   res.status(500).json({ message: err.message });
-  // });
+  app.use((err: Error, _: Request, res: Response, _2: NextFunction) => {
+    res.status(500).json({ message: err.message });
+  });
 
   app.listen(__port__, () => console.log(__listenMessage__(__port__)));
 };
