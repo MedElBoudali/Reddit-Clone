@@ -3,6 +3,7 @@ import { User } from '../entities/User';
 import { MyContext } from 'src/types';
 import argon2 from 'argon2';
 import { EntityManager } from '@mikro-orm/postgresql';
+import { cookieName } from '../config/constants';
 
 // adding class istead of using @Arg too many times
 @InputType()
@@ -96,5 +97,22 @@ export class UserResolver {
     }
     req.session!.userId = user.id;
     return { user };
+  }
+
+  // Logout
+  @Mutation(() => Boolean)
+  logout(@Ctx() { req, res }: MyContext) {
+    return new Promise(resolve =>
+      req.session?.destroy(err => {
+        res.clearCookie(cookieName);
+        if (err) {
+          console.log(err.message);
+          resolve(false);
+          return;
+        } else {
+          resolve(true);
+        }
+      })
+    );
   }
 }

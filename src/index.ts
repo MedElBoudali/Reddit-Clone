@@ -4,7 +4,7 @@ import microConfig from './config/mikro-orm.config';
 import express, { Request, Response, NextFunction } from 'express';
 import { ApolloServer } from 'apollo-server-express';
 import { buildSchema } from 'type-graphql';
-import { __listenMessage__, __port__, __prod__ } from './config/constants';
+import { cookieName, __listenMessage__, __port__, __prod__ } from './config/constants';
 import { PostResolver } from './resolvers/post';
 import { UserResolver } from './resolvers/user';
 import redis from 'redis';
@@ -27,7 +27,7 @@ const main = async () => {
   app.use(
     // Redis
     session({
-      name: 'gid',
+      name: cookieName,
       store: new RedisStore({ client: redisClient, disableTouch: true }),
       cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10, //10 years
