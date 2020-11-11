@@ -39,7 +39,7 @@ export class UserResolver {
       // you are not loged in
       return null;
     }
-    const user = await em.findOne(User, { id: req.session!.userId });
+    const user = await em.findOne(User, { id: req.session.userId });
     return user;
   }
 

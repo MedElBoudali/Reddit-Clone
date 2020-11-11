@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { MikroORM } from '@mikro-orm/core';
-import microConfig from './config/mikro-orm.config';
+import microConfig from './mikro-orm.config';
 import express, { Request, Response, NextFunction } from 'express';
 import { ApolloServer } from 'apollo-server-express';
 import { buildSchema } from 'type-graphql';
@@ -10,7 +10,6 @@ import { UserResolver } from './resolvers/user';
 import redis from 'redis';
 import session from 'express-session';
 import connectRedis from 'connect-redis';
-import { MyContext } from './types';
 import cors from 'cors';
 
 const main = async () => {
@@ -58,7 +57,7 @@ const main = async () => {
   // graphql server
   const apolloServer = new ApolloServer({
     schema: await buildSchema({ resolvers: [PostResolver, UserResolver], validate: false }),
-    context: ({ req, res }): MyContext => ({ em: orm.em, req, res })
+    context: ({ req, res }) => ({ em: orm.em, req, res })
   });
 
   apolloServer.applyMiddleware({ app, cors: false });
