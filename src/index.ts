@@ -11,12 +11,12 @@ import redis from 'redis';
 import session from 'express-session';
 import connectRedis from 'connect-redis';
 import cors from 'cors';
-import { sendEmail } from './utils/sendEmail';
-import { User } from './entities/User';
+// import { sendEmail } from './utils/sendEmail';
+// import { User } from './entities/User';
 
 const main = async () => {
   // Sending test email
-  sendEmail('mr.elboudali@gmail.com', 'Hello world!');
+  // sendEmail('mr.elboudali@gmail.com', 'Hello world!');
   // Migrating table
   const orm = await MikroORM.init(microConfig);
   // delete table after adding required field in DB

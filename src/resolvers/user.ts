@@ -35,11 +35,11 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
-  @Mutation(() => Boolden)
-  async forgotPassword(@Arg('email') email: string, @Ctx() { em }: MyContext) {
-    const person = em.findOne(User, { email });
-    return true;
-  }
+  // @Mutation(() => boolean)
+  // async forgotPassword(@Arg('email') email: string, @Ctx() { em }: MyContext) {
+  //   const person = em.findOne(User, { email });
+  //   return true;
+  // }
 
   @Query(() => User, { nullable: true })
   async me(@Ctx() { em, req }: MyContext) {
@@ -54,7 +54,7 @@ export class UserResolver {
   //    Register
   @Mutation(() => UserResponse)
   async register(
-    @Arg('userIputs') userInputs: userInputs,
+    @Arg('userInputs') userInputs: userInputs,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
     if (userInputs.username.length <= 2) {
@@ -99,14 +99,14 @@ export class UserResolver {
   //  Login
   @Mutation(() => UserResponse)
   async login(
-    @Arg('userIputs') usernameOrEmail: string,
+    @Arg('userNameOrEmail') userNameOrEmail: string,
     @Arg('password') password: string,
     @Ctx() { em, req }: MyContext
   ) {
-    const isEmail: boolean = usernameOrEmail.includes('@') ? true : false;
+    const isEmail: boolean = userNameOrEmail.includes('@') ? true : false;
     const user = await em.findOne(
       User,
-      isEmail ? { email: usernameOrEmail } : { username: usernameOrEmail }
+      isEmail ? { email: userNameOrEmail } : { username: userNameOrEmail }
     );
     if (!user) {
       return { errors: [{ field: 'username', message: "username or email doesn't exist!" }] };
