@@ -109,7 +109,9 @@ export class UserResolver {
       isEmail ? { email: userNameOrEmail } : { username: userNameOrEmail }
     );
     if (!user) {
-      return { errors: [{ field: 'username', message: "username or email doesn't exist!" }] };
+      return {
+        errors: [{ field: 'userNameOrEmail', message: "username or email doesn't exist!" }]
+      };
     }
     const isMatch = await argon2.verify(user.password, password);
     if (!isMatch) {
