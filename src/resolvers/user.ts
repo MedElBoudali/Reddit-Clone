@@ -11,6 +11,8 @@ class userInputs {
   @Field()
   username: string;
   @Field()
+  email: string;
+  @Field()
   password: string;
 }
 
@@ -33,6 +35,12 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @Mutation(() => Boolden)
+  async forgotPassword(@Arg('email') email: string, @Ctx() { em }: MyContext) {
+    const person = em.findOne(User, { email });
+    return true;
+  }
+
   @Query(() => User, { nullable: true })
   async me(@Ctx() { em, req }: MyContext) {
     if (!req.session!.userId) {
@@ -52,6 +60,9 @@ export class UserResolver {
     if (userInputs.username.length <= 2) {
       return { errors: [{ field: 'username', message: 'Length should be greater than 2' }] };
     }
+    if (userInputs.email.length <= 2 || !userInputs.email.includes('@')) {
+      return { errors: [{ field: 'email', message: 'Invalid email' }] };
+    }
     if (userInputs.password.length <= 2) {
       return { errors: [{ field: 'password', message: 'Length should be greater than 2' }] };
     }
@@ -68,6 +79,7 @@ export class UserResolver {
         .getKnexQuery()
         .insert({
           username: userInputs.username,
+          email: userInputs.email,
           password: hashedPassword,
           created_at: new Date(),
           updated_at: new Date()
@@ -86,12 +98,20 @@ export class UserResolver {
 
   //  Login
   @Mutation(() => UserResponse)
-  async login(@Arg('userIputs') userInputs: userInputs, @Ctx() { em, req }: MyContext) {
-    const user = await em.findOne(User, { username: userInputs.username });
+  async login(
+    @Arg('userIputs') usernameOrEmail: string,
+    @Arg('password') password: string,
+    @Ctx() { em, req }: MyContext
+  ) {
+    const isEmail: boolean = usernameOrEmail.includes('@') ? true : false;
+    const user = await em.findOne(
+      User,
+      isEmail ? { email: usernameOrEmail } : { username: usernameOrEmail }
+    );
     if (!user) {
-      return { errors: [{ field: 'username', message: "username doesn't exist!" }] };
+      return { errors: [{ field: 'username', message: "username or email doesn't exist!" }] };
     }
-    const isMatch = await argon2.verify(user.password, userInputs.password);
+    const isMatch = await argon2.verify(user.password, password);
     if (!isMatch) {
       return { errors: [{ field: 'password', message: "password doesn't match!" }] };
     }
