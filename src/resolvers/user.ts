@@ -3,7 +3,9 @@ import { User } from '../entities/User';
 import { MyContext } from 'src/types';
 import argon2 from 'argon2';
 import { EntityManager } from '@mikro-orm/postgresql';
-import { cookieName } from '../config/constants';
+import { cookieName, FORGET_PASSWORD_PREFIX } from '../config/constants';
+import { sendEmail } from '../utils/sendEmail';
+import { v4 } from 'uuid';
 
 // adding class istead of using @Arg too many times
 @InputType()
@@ -35,11 +37,19 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
-  // @Mutation(() => boolean)
-  // async forgotPassword(@Arg('email') email: string, @Ctx() { em }: MyContext) {
-  //   const person = em.findOne(User, { email });
-  //   return true;
-  // }
+  @Mutation(() => Boolean)
+  async forgotPassword(@Arg('email') email: string, @Ctx() { em, redis }: MyContext) {
+    const user = await em.findOne(User, { email });
+    if (!user) {
+      // email not found on our DB
+      return true;
+    }
+
+    const token = v4();
+    await redis.set(FORGET_PASSWORD_PREFIX + token, user.id, 'ex', 1000 * 60 * 60 * 24 * 3); // for 3days
+    await sendEmail(email, `<a href="http://localhost:3000/change-password/${token}">Reset Paswword</a>`);
+    return true;
+  }
 
   @Query(() => User, { nullable: true })
   async me(@Ctx() { em, req }: MyContext) {
