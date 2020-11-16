@@ -37,6 +37,40 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @Mutation(() => UserResponse)
+  async changePassword(
+    @Arg('token') token: string,
+    @Arg('newPassword') newPassword: string,
+    @Ctx() { em, req, redis }: MyContext
+  ): Promise<UserResponse> {
+    if (newPassword.length <= 2) {
+      return { errors: [{ field: 'newPassword', message: 'Length should be greater than 2' }] };
+    }
+    const key = FORGET_PASSWORD_PREFIX + token;
+    const userId = await redis.get(key);
+    if (!userId) {
+      return { errors: [{ field: 'token', message: 'Sorry, your token expired!' }] };
+    }
+
+    // if we have token on redis
+    const user = await em.findOne(User, { id: Number(userId) });
+    if (!user) {
+      // if we didn't found the user
+      return { errors: [{ field: 'user', message: 'user no longer exists' }] };
+    }
+    // if no errors hash new password and update
+    user.password = await argon2.hash(newPassword);
+    await em.persistAndFlush(user);
+    // delete token from redis
+    redis.del(key);
+    // Login after changing password
+    req.session!.userId = user.id;
+    return {
+      user
+    };
+  }
+
+  // generating token and store it in redis
   @Mutation(() => Boolean)
   async forgotPassword(@Arg('email') email: string, @Ctx() { em, redis }: MyContext) {
     const user = await em.findOne(User, { email });
@@ -47,7 +81,10 @@ export class UserResolver {
 
     const token = v4();
     await redis.set(FORGET_PASSWORD_PREFIX + token, user.id, 'ex', 1000 * 60 * 60 * 24 * 3); // for 3days
-    await sendEmail(email, `<a href="http://localhost:3000/change-password/${token}">Reset Paswword</a>`);
+    await sendEmail(
+      email,
+      `<a href="http://localhost:3000/change-password/${token}">Reset Paswword</a>`
+    );
     return true;
   }
 
