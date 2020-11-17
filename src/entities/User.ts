@@ -3,13 +3,14 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   UpdateDateColumn,
-  Column
+  Column,
+  BaseEntity
 } from 'typeorm';
 import {Field, ObjectType} from 'type-graphql';
 
 @ObjectType()
 @Entity()
-export class User {
+export class User extends BaseEntity {
   @Field()
   @PrimaryGeneratedColumn()
   id!: number;
@@ -20,7 +21,7 @@ export class User {
 
   @Field()
   @UpdateDateColumn()
-  updatedAt = new Date();
+  updatedAt: Date;
 
   @Field()
   @Column({ unique: true })
@@ -29,7 +30,7 @@ export class User {
   @Field()
   @Column({ unique: true })
   email!: string;
-
-  @Column({})
+  
+  @Column()
   password!: string;
 }

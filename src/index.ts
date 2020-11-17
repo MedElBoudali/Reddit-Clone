@@ -1,6 +1,5 @@
 import 'reflect-metadata';
-import { MikroORM } from '@mikro-orm/core';
-import microConfig from './mikro-orm.config';
+import { Connection, createConnection } from 'typeorm';
 import express, { Request, Response, NextFunction } from 'express';
 import { ApolloServer } from 'apollo-server-express';
 import { buildSchema } from 'type-graphql';
@@ -11,17 +10,19 @@ import Redis from 'ioredis';
 import session from 'express-session';
 import connectRedis from 'connect-redis';
 import cors from 'cors';
-// import { sendEmail } from './utils/sendEmail';
-// import { User } from './entities/User';
+import { Post } from './entities/Post';
+import { User } from './entities/User';
 
 const main = async () => {
-  // Sending test email
-  // sendEmail('mr.elboudali@gmail.com', 'Hello world!');
-  // Migrating table
-  const orm = await MikroORM.init(microConfig);
-  // delete table after adding required field in DB
-  // await orm.em.nativeDelete(User, {});
-  await orm.getMigrator().up();
+  const connection: Connection = await createConnection({
+    type: 'postgres',
+    database: 'reddit_clone2',
+    username: 'postgres',
+    password: 'postgres',
+    logging: true,
+    synchronize: !__prod__,
+    entities: [Post, User]
+  });
 
   const app = express();
 
@@ -45,26 +46,12 @@ const main = async () => {
       secret: 'fzefzcefevcczgjnkukjgscercqzgsevhevcg',
       resave: false
     })
-    // PG
-    // session({
-    //   name: 'gid',
-    //   store: new (require('connect-pg-simple')(session))({ tableName: 'session' }),
-    //   cookie: {
-    //     maxAge: 1000 * 60 * 60 * 24 * 365 * 10, //10 years
-    //     httpOnly: true,
-    //     sameSite: 'lax', // protecting against csrf
-    //     secure: __prod__ // cookie works only on https
-    //   },
-    //   saveUninitialized: false,
-    //   secret: 'fzefzcefevcczgjnkukjgscercqzgsevhevcg',
-    //   resave: false
-    // })
   );
 
   // graphql server
   const apolloServer = new ApolloServer({
     schema: await buildSchema({ resolvers: [PostResolver, UserResolver], validate: false }),
-    context: ({ req, res }) => ({ em: orm.em, req, res, redis })
+    context: ({ req, res }) => ({ req, res, redis })
   });
 
   apolloServer.applyMiddleware({ app, cors: false });

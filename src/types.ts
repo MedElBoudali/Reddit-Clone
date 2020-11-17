@@ -1,19 +1,9 @@
 import { Request, Response } from 'express';
 import { Session } from 'express-session';
-import { EntityManager, IDatabaseDriver, Connection } from '@mikro-orm/core';
 import { Redis } from 'ioredis';
 
-interface mySession extends Session {
-  userId: number;
-}
-
-interface myRequest extends Request {
-  session: mySession;
-}
-
 export type MyContext = {
-  em: EntityManager<any> & EntityManager<IDatabaseDriver<Connection>>;
-  req: myRequest;
+  req: Request & { session: Session & { userId: number } }; // nested types
   res: Response;
   redis: Redis;
 };
