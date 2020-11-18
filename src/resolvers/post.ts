@@ -1,5 +1,30 @@
-import { Arg, Mutation, Query, Resolver } from 'type-graphql';
+import { MyContext } from 'src/types';
+import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } from 'type-graphql';
 import { Post } from '../entities/Post';
+
+@InputType()
+class PostInput {
+  @Field()
+  title: string;
+  @Field()
+  text: string;
+}
+
+@ObjectType()
+class ErrorField {
+  @Field()
+  code: number;
+  @Field()
+  message: string;
+}
+
+@ObjectType()
+class PostResponse {
+  @Field(() => ErrorField, { nullable: true })
+  error?: ErrorField;
+  @Field(() => Post, { nullable: true })
+  post?: Post;
+}
 
 @Resolver()
 export class PostResolver {
@@ -16,10 +41,23 @@ export class PostResolver {
   }
 
   //    Create
-  @Mutation(() => Post)
-  async createPost(@Arg('title') title: string): Promise<Post> {
+  @Mutation(() => PostResponse)
+  async createPost(
+    @Arg('postInput') postInput: PostInput,
+    @Ctx() { req }: MyContext
+  ): Promise<PostResponse> {
     // 2 sql queries 1 create 2 select
-    return await Post.create({ title }).save();
+    const userId = req.session.userId;
+    if (!userId) {
+      return {
+        error: {
+          code: 401,
+          message: 'Unauthorized'
+        }
+      };
+    }
+    const post = await Post.create({ ...postInput, authorId: userId }).save();
+    return { post };
   }
 
   //    Update
