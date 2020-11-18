@@ -1,5 +1,6 @@
+import { isAuth } from '../middleware/isAuthenticated';
 import { MyContext } from 'src/types';
-import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } from 'type-graphql';
+import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver, UseMiddleware } from 'type-graphql';
 import { Post } from '../entities/Post';
 
 @InputType()
@@ -28,39 +29,28 @@ class PostResponse {
 
 @Resolver()
 export class PostResolver {
-  //    Get All
   @Query(() => [Post])
   async getAllPosts(): Promise<Post[]> {
     return await Post.find();
   }
 
-  //    Get
   @Query(() => Post, { nullable: true })
   async getPost(@Arg('id') id: number): Promise<Post | undefined> {
     return await Post.findOne(id);
   }
 
-  //    Create
   @Mutation(() => PostResponse)
+  @UseMiddleware(isAuth)
   async createPost(
     @Arg('postInput') postInput: PostInput,
     @Ctx() { req }: MyContext
   ): Promise<PostResponse> {
     // 2 sql queries 1 create 2 select
     const userId = req.session.userId;
-    if (!userId) {
-      return {
-        error: {
-          code: 401,
-          message: 'Unauthorized'
-        }
-      };
-    }
     const post = await Post.create({ ...postInput, authorId: userId }).save();
     return { post };
   }
 
-  //    Update
   @Mutation(() => Post, { nullable: true })
   async updatePost(
     @Arg('id') id: number,
