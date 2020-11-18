@@ -1,6 +1,16 @@
 import { isAuth } from '../middleware/isAuthenticated';
 import { MyContext } from 'src/types';
-import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver, UseMiddleware } from 'type-graphql';
+import {
+  Arg,
+  Ctx,
+  Field,
+  InputType,
+  Mutation,
+  ObjectType,
+  Query,
+  Resolver,
+  UseMiddleware
+} from 'type-graphql';
 import { Post } from '../entities/Post';
 
 @InputType()
@@ -14,7 +24,7 @@ class PostInput {
 @ObjectType()
 class ErrorField {
   @Field()
-  code: number;
+  field: string;
   @Field()
   message: string;
 }
@@ -47,6 +57,12 @@ export class PostResolver {
   ): Promise<PostResponse> {
     // 2 sql queries 1 create 2 select
     const userId = req.session.userId;
+    if (!postInput.title || postInput.title.length <= 3) {
+      return { error: { field: 'title', message: 'Title should be greater than 3!' } };
+    }
+    if (!postInput.text || postInput.text.length <= 3) {
+      return { error: { field: 'text', message: 'Body text should be greater than 3!' } };
+    }
     const post = await Post.create({ ...postInput, authorId: userId }).save();
     return { post };
   }
