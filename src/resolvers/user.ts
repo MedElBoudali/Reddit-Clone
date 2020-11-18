@@ -163,7 +163,7 @@ export class UserResolver {
     if (!isMatch) {
       return { errors: [{ field: 'password', message: "password doesn't match!" }] };
     }
-    req.session!.userId = user.id;
+    req.session.userId = user.id;
     return { user };
   }
 
