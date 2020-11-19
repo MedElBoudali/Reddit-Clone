@@ -5,6 +5,7 @@ import {
   Ctx,
   Field,
   InputType,
+  Int,
   Mutation,
   ObjectType,
   Query,
@@ -12,6 +13,7 @@ import {
   UseMiddleware
 } from 'type-graphql';
 import { Post } from '../entities/Post';
+import { getConnection } from 'typeorm';
 
 @InputType()
 class PostInput {
@@ -40,8 +42,23 @@ class PostResponse {
 @Resolver()
 export class PostResolver {
   @Query(() => [Post])
-  async getAllPosts(): Promise<Post[]> {
-    return await Post.find();
+  async getAllPosts(
+    @Arg('limit', () => Int) limit: number,
+    @Arg('cursor', () => String, { nullable: true }) cursor: string | null
+  ): Promise<Post[]> {
+    const minLimit = Math.min(50, limit);
+    console.log(cursor as string);
+    const QB = getConnection()
+      .getRepository(Post)
+      .createQueryBuilder('p')
+      .orderBy('"createdAt"', 'DESC') // using '""' for psql to keep A
+      .take(minLimit);
+
+    if (cursor) {
+      QB.where('"createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) });
+    }
+
+    return await QB.getMany();
   }
 
   @Query(() => Post, { nullable: true })
