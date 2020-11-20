@@ -4,12 +4,14 @@ import {
   Arg,
   Ctx,
   Field,
+  FieldResolver,
   InputType,
   Int,
   Mutation,
   ObjectType,
   Query,
   Resolver,
+  Root,
   UseMiddleware
 } from 'type-graphql';
 import { Post } from '../entities/Post';
@@ -39,26 +41,41 @@ class PostResponse {
   post?: Post;
 }
 
-@Resolver()
+@ObjectType()
+class PaginatedPosts {
+  @Field(() => [Post])
+  posts: Post[];
+  @Field()
+  hasMore: boolean;
+}
+
+@Resolver(Post)
 export class PostResolver {
-  @Query(() => [Post])
+  // add new field to return 100 letter
+  @FieldResolver(() => String)
+  textSnippet(@Root() root: Post) {
+    return root.text.slice(0, 200) + '...';
+  }
+
+  @Query(() => PaginatedPosts)
   async getAllPosts(
     @Arg('limit', () => Int) limit: number,
     @Arg('cursor', () => String, { nullable: true }) cursor: string | null
-  ): Promise<Post[]> {
+  ): Promise<PaginatedPosts> {
     const minLimit = Math.min(50, limit);
-    console.log(cursor as string);
+    const minLimitPlusOne = minLimit + 1;
     const QB = getConnection()
       .getRepository(Post)
       .createQueryBuilder('p')
       .orderBy('"createdAt"', 'DESC') // using '""' for psql to keep A
-      .take(minLimit);
+      .take(minLimitPlusOne);
 
     if (cursor) {
       QB.where('"createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) });
     }
-
-    return await QB.getMany();
+    // check if he has more by adding +1 to minLimit
+    const posts = await QB.getMany();
+    return { posts: posts.slice(0, minLimit), hasMore: posts.length === minLimitPlusOne };
   }
 
   @Query(() => Post, { nullable: true })

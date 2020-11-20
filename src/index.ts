@@ -28,6 +28,9 @@ const main = async () => {
 
   await connection.runMigrations();
 
+  // Clear data before migration
+  // await Post.delete({});
+
   const app = express();
 
   // Redis
