@@ -66,12 +66,13 @@ export class PostResolver {
     const minLimitPlusOne = minLimit + 1;
     const QB = getConnection()
       .getRepository(Post)
-      .createQueryBuilder('p')
-      .orderBy('"createdAt"', 'DESC') // using '""' for psql to keep A
+      .createQueryBuilder('post')
+      .innerJoinAndSelect('post.author', 'author', 'author.id = post."authorId"')
+      .orderBy('post', 'DESC') // using '""' for psql to keep A
       .take(minLimitPlusOne);
 
     if (cursor) {
-      QB.where('"createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) });
+      QB.where('post."createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) });
     }
     // check if he has more by adding +1 to minLimit
     const posts = await QB.getMany();
