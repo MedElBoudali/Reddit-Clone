@@ -64,19 +64,46 @@ export class PostResolver {
   ): Promise<PaginatedPosts> {
     const minLimit = Math.min(50, limit);
     const minLimitPlusOne = minLimit + 1;
-    const QB = getConnection()
-      .getRepository(Post)
-      .createQueryBuilder('post')
-      .innerJoinAndSelect('post.author', 'author', 'author.id = post."authorId"')
-      .orderBy('post', 'DESC') // using '""' for psql to keep A
-      .take(minLimitPlusOne);
+    //=> get all posts and search for the auther by authorId but without ortherby it gives us error
+    // const QB = getConnection()
+    //   .getRepository(Post)
+    //   .createQueryBuilder('post')
+    //   .innerJoinAndSelect('post.author', 'author', 'author.id = post."authorId"')
+    //=> delete this line   .orderBy('"createdAt"', 'DESC') // using '""' for psql to keep A
+    //   .take(minLimitPlusOne);
 
-    if (cursor) {
-      QB.where('post."createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) });
-    }
+    // if (cursor) {
+    //   QB.where('post."createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) });
+    // }
     // check if he has more by adding +1 to minLimit
-    const posts = await QB.getMany();
-    return { posts: posts.slice(0, minLimit), hasMore: posts.length === minLimitPlusOne };
+    // const posts = await QB.getMany();
+    // return { posts: posts.slice(0, minLimit), hasMore: posts.length === minLimitPlusOne };
+
+    //=> use the other way with query (p is alias small name for posts)
+    const queryParams: any[] = [minLimitPlusOne];
+    if (cursor) {
+      queryParams[1] = new Date(parseInt(cursor));
+    }
+    const posts = await getConnection().query(
+      `
+      select p.*, 
+      json_build_object(
+        'id', u.id,
+        'username', u.username,
+        'email', u.email,
+        'createdAt', u."createdAt",
+        'updatedAt', u."updatedAt"
+      ) author 
+      from post p
+      inner join public.user u on u.id = p."authorId"
+      ${cursor && `where p."createdAt" < $2`}
+      order by p."createdAt" DESC
+      limit $1
+    `,
+      queryParams
+    );
+
+    return { posts, hasMore: posts.length === minLimitPlusOne };
   }
 
   @Query(() => Post, { nullable: true })
