@@ -1,4 +1,4 @@
-import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } from 'type-graphql';
+import { Arg, Ctx, Field, FieldResolver, InputType, Mutation, ObjectType, Query, Resolver, Root } from 'type-graphql';
 import { User } from '../entities/User';
 import { MyContext } from 'src/types';
 import argon2 from 'argon2';
@@ -35,8 +35,18 @@ class UserResponse {
   user?: User;
 }
 
-@Resolver()
+@Resolver(User) // add User type only when we use FieldResolver
 export class UserResolver {
+// show email just if the creator is the user logged in
+@FieldResolver() // will return new Field or modifie if existed
+email(@Root() user: User, @Ctx() {req}:MyContext){
+  if(req.session.userId === user.id){
+    return user.email
+  }
+  return ""
+}
+
+
   @Mutation(() => UserResponse)
   async changePassword(
     @Arg('token') token: string,
