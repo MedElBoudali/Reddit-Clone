@@ -121,7 +121,7 @@ export class PostResolver {
       ) author 
       from post p
       inner join public.user u on u.id = p."authorId"
-      ${cursor && `where p."createdAt" < $2`}
+      ${cursor ? `where p."createdAt" < $2` : ''}
       order by p."createdAt" DESC
       limit $1
     `,
