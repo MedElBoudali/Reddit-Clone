@@ -13,6 +13,7 @@ import cors from 'cors';
 import { Post } from './entities/Post';
 import { User } from './entities/User';
 import path from 'path';
+import { Updoot } from './entities/Updoot';
 
 const main = async () => {
   const connection: Connection = await createConnection({
@@ -22,7 +23,7 @@ const main = async () => {
     password: 'postgres',
     logging: true,
     synchronize: !__prod__,
-    entities: [Post, User],
+    entities: [Post, User, Updoot],
     migrations: [path.join(__dirname, './migrations/*')]
   });
 

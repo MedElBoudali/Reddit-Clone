@@ -35,12 +35,12 @@ export class Post extends BaseEntity {
   @Column()
   authorId!: number;
 
-  @Field()
+  @Field(() => User)
   @ManyToOne(() => User, user => user.posts)
   author: User;
 
   @OneToMany(() => Updoot, updoot => updoot.post)
-  updoot: Updoot[];
+  updoots: Updoot[];
 
   @Field(() => String)
   @CreateDateColumn()
