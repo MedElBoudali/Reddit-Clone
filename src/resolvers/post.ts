@@ -16,6 +16,7 @@ import {
 } from 'type-graphql';
 import { Post } from '../entities/Post';
 import { getConnection } from 'typeorm';
+import { Updoot } from '../entities/Updoot';
 
 @InputType()
 class PostInput {
@@ -62,17 +63,58 @@ export class PostResolver {
     const isUpdoot = value !== -1;
     const realValue = isUpdoot ? 1 : -1;
     const { userId } = req.session;
-    await getConnection().query(
-      `
-    START TRANSACTION;
-    insert into updoot ("userId", "postId", value)
-    values (${userId}, ${postId}, ${realValue});
-    update post
-    set points = points + ${realValue}
-    where id = ${postId};
-    COMMIT;
-    `
-    );
+    const updoot = await Updoot.findOne({ where: { postId, userId } });
+    // if the user has voted on the post before
+    // and he want to change the value
+    if (updoot && updoot.value !== realValue) {
+      // update and change the vote value
+      await getConnection().transaction(async tm => {
+        await tm.query(
+          `
+          update updoot 
+          set value = $1
+          where "postId" = $2 and "userId" = $3`,
+          [realValue, postId, userId]
+        );
+        await tm.query(
+          `
+          update post 
+          set points = points + $1
+          where "id" = $2`,
+          [realValue, postId]
+        );
+      });
+    } else if (!updoot) {
+      // we shouldn't use this query use the other one
+      //   await getConnection().query(
+      //     `
+      // START TRANSACTION;
+      // insert into updoot ("userId", "postId", value)
+      // values (${userId}, ${postId}, ${realValue});
+      // update post
+      // set points = points + ${realValue}
+      // where id = ${postId};
+      // COMMIT;
+      // `
+      // );
+      // the other way of using transaction (multiple queries) with typeorm
+      await getConnection().transaction(async tm => {
+        await tm.query(
+          `
+          insert into updoot ("userId", "postId", value)
+          values ($1, $2, $3)`,
+          [userId, postId, realValue]
+        );
+        await tm.query(
+          `
+          update post
+          set points = points + $1
+          where id = $2`,
+          [realValue, postId]
+        );
+      });
+    }
+
     return true;
   }
 
@@ -85,10 +127,12 @@ export class PostResolver {
   @Query(() => PaginatedPosts)
   async getAllPosts(
     @Arg('limit', () => Int) limit: number,
-    @Arg('cursor', () => String, { nullable: true }) cursor: string | null
+    @Arg('cursor', () => String, { nullable: true }) cursor: string | null,
+    @Ctx() { req }: MyContext
   ): Promise<PaginatedPosts> {
     const minLimit = Math.min(50, limit);
     const minLimitPlusOne = minLimit + 1;
+    const userId = req.session.userId;
     //=> get all posts and search for the auther by authorId but without ortherby it gives us error
     // const QB = getConnection()
     //   .getRepository(Post)
@@ -105,9 +149,9 @@ export class PostResolver {
     // return { posts: posts.slice(0, minLimit), hasMore: posts.length === minLimitPlusOne };
 
     //=> use the other way with query (p is alias small name for posts)
-    const queryParams: any[] = [minLimitPlusOne];
+    const queryParams: any[] = [minLimitPlusOne, userId];
     if (cursor) {
-      queryParams[1] = new Date(parseInt(cursor));
+      queryParams[2] = new Date(parseInt(cursor));
     }
     const posts = await getConnection().query(
       `
@@ -118,10 +162,15 @@ export class PostResolver {
         'email', u.email,
         'createdAt', u."createdAt",
         'updatedAt', u."updatedAt"
-      ) author 
+      ) author, 
+      ${
+        userId
+          ? '(select value from updoot where "userId" = $2 and "postId" = p.id) "voteStatus"'
+          : 'null as voteStatus'
+      }
       from post p
       inner join public.user u on u.id = p."authorId"
-      ${cursor ? `where p."createdAt" < $2` : ''}
+      ${cursor ? `where p."createdAt" < $3` : ''}
       order by p."createdAt" DESC
       limit $1
     `,
