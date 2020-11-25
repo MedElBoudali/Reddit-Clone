@@ -81,7 +81,7 @@ export class PostResolver {
           update post 
           set points = points + $1
           where "id" = $2`,
-          [realValue, postId]
+          [2 * realValue, postId]
         );
       });
     } else if (!updoot) {
@@ -149,9 +149,14 @@ export class PostResolver {
     // return { posts: posts.slice(0, minLimit), hasMore: posts.length === minLimitPlusOne };
 
     //=> use the other way with query (p is alias small name for posts)
-    const queryParams: any[] = [minLimitPlusOne, userId];
+    const queryParams: any[] = [minLimitPlusOne];
+    if (userId) {
+      queryParams.push(userId);
+    }
+    let cursorId = 3;
     if (cursor) {
-      queryParams[2] = new Date(parseInt(cursor));
+      queryParams.push(new Date(parseInt(cursor)));
+      cursorId = queryParams.length;
     }
     const posts = await getConnection().query(
       `
@@ -162,15 +167,15 @@ export class PostResolver {
         'email', u.email,
         'createdAt', u."createdAt",
         'updatedAt', u."updatedAt"
-      ) author, 
+      ) author,
       ${
         userId
           ? '(select value from updoot where "userId" = $2 and "postId" = p.id) "voteStatus"'
-          : 'null as voteStatus'
+          : 'null as "voteStatus"'
       }
       from post p
       inner join public.user u on u.id = p."authorId"
-      ${cursor ? `where p."createdAt" < $3` : ''}
+      ${cursor ? `where p."createdAt" < $${cursorId}` : ''}
       order by p."createdAt" DESC
       limit $1
     `,

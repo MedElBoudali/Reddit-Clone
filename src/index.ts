@@ -18,7 +18,7 @@ import { Updoot } from './entities/Updoot';
 const main = async () => {
   const connection: Connection = await createConnection({
     type: 'postgres',
-    database: 'reddit_clone2',
+    database: 'reddit_clone',
     username: 'postgres',
     password: 'postgres',
     logging: true,
