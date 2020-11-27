@@ -209,18 +209,29 @@ export class PostResolver {
   }
 
   @Mutation(() => Post, { nullable: true })
+  @UseMiddleware(isAuth)
   async updatePost(
-    @Arg('id') id: number,
-    @Arg('title', () => String, { nullable: true }) title: string
+    @Arg('id', () => Int) id: number,
+    @Arg('title') title: string,
+    @Arg('text') text: string,
+    @Ctx() { req }: MyContext
   ): Promise<Post | null> {
-    const post = await Post.findOne(id);
-    if (!post) {
+    const userId = req.session.userId;
+    try {
+      const result = await getConnection()
+        .createQueryBuilder()
+        .update(Post)
+        .set({ title, text })
+        .where('id = :id and authorId = :authorId', {
+          id,
+          authorId: userId
+        })
+        .returning('*')
+        .execute();
+      return result.raw[0];
+    } catch (error) {
       return null;
     }
-    if (typeof title !== 'undefined') {
-      await Post.update({ id }, { title });
-    }
-    return post;
   }
 
   //    Delete and return the deleted post
@@ -236,11 +247,28 @@ export class PostResolver {
   @UseMiddleware(isAuth)
   async deletePost(@Arg('id', () => Int) id: number, @Ctx() { req }: MyContext): Promise<boolean> {
     const userId = req.session.userId;
+    // Not cascade way
+    // try {
+    //   const post = await Post.findOne(id);
+    //   if (!post) {
+    //     return false;
+    //   }
+    //   if (post.authorId !== userId) {
+    //     return false;
+    //   }
+    //   await Updoot.delete({ userId });
+    //   await Post.delete({ id, authorId: userId });
+    //   return true;
+    // } catch (error) {
+    //   console.log(error);
+    //   return false;
+    // }
+
+    // if we want to use cascade we need to go to updoot and add ,{onDelete: "CASCADE"}
     try {
       await Post.delete({ id, authorId: userId });
       return true;
     } catch (error) {
-      console.log(error);
       return false;
     }
   }
