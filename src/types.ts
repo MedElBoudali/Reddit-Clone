@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Session } from 'express-session';
 import { Redis } from 'ioredis';
+import { createUpvoteLoader } from './utils/createUpvoteLoader';
 import { createUserLoader } from './utils/createUserLoader';
 
 export type MyContext = {
@@ -8,4 +9,5 @@ export type MyContext = {
   res: Response;
   redis: Redis;
   userLoader: ReturnType<typeof createUserLoader>; //if we dont know the type we can use TS ReturnType to get the type
+  updootLoader: ReturnType<typeof createUpvoteLoader>; //if we dont know the type we can use TS ReturnType to get the type
 };

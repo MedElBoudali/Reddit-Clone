@@ -125,10 +125,22 @@ export class PostResolver {
     return root.text.slice(0, 200) + '...';
   }
 
-  // add new field to return 100 letter
+  // using dataloader to fetch users in single query
   @FieldResolver(() => User)
-  author(@Root() post: Post) {
-    return User.findOne(post.authorId);
+  author(@Root() post: Post, @Ctx() { userLoader }: MyContext) {
+    return userLoader.load(post.authorId);
+  }
+
+  // using dataloader to fetch votestatus in single query
+  @FieldResolver(() => Int, { nullable: true })
+  async voteStatus(@Root() post: Post, @Ctx() { req, updootLoader }: MyContext) {
+    const userId = req.session.userId;
+    if (!userId) {
+      return null;
+    }
+
+    const updoot = await updootLoader.load({ postId: post.id, userId });
+    return updoot ? updoot.value : null;
   }
 
   @Query(() => PaginatedPosts)
