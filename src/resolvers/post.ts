@@ -17,6 +17,7 @@ import {
 import { Post } from '../entities/Post';
 import { getConnection } from 'typeorm';
 import { Updoot } from '../entities/Updoot';
+import { User } from '../entities/User';
 
 @InputType()
 class PostInput {
@@ -124,6 +125,12 @@ export class PostResolver {
     return root.text.slice(0, 200) + '...';
   }
 
+  // add new field to return 100 letter
+  @FieldResolver(() => User)
+  author(@Root() post: Post) {
+    return User.findOne(post.authorId);
+  }
+
   @Query(() => PaginatedPosts)
   async getAllPosts(
     @Arg('limit', () => Int) limit: number,
@@ -158,36 +165,53 @@ export class PostResolver {
       queryParams.push(new Date(parseInt(cursor)));
       cursorId = queryParams.length;
     }
+    //=> before add author FieldResolver (TOP)
+    // const posts = await getConnection().query(
+    //   `
+    //   select p.*,
+    //   json_build_object(
+    //     'id', u.id,
+    //     'username', u.username,
+    //     'email', u.email,
+    //     'createdAt', u."createdAt",
+    //     'updatedAt', u."updatedAt"
+    //   ) author,
+    //   ${
+    //     userId
+    //       ? '(select value from updoot where "userId" = $2 and "postId" = p.id) "voteStatus"'
+    //       : 'null as "voteStatus"'
+    //   }
+    //   from post p
+    //   inner join public.user u on u.id = p."authorId"
+    //   ${cursor ? `where p."createdAt" < $${cursorId}` : ''}
+    //   order by p."createdAt" DESC
+    //   limit $1
+    // `,
+    //   queryParams
+    // );
+    //=> after add author FieldResolver (TOP) now we can return author object without including it in the query
+    //=> now we have a problem with every post we call we need to call author query its (n+1 problem) 100 post = 200 querys
     const posts = await getConnection().query(
       `
       select p.*, 
-      json_build_object(
-        'id', u.id,
-        'username', u.username,
-        'email', u.email,
-        'createdAt', u."createdAt",
-        'updatedAt', u."updatedAt"
-      ) author,
       ${
         userId
           ? '(select value from updoot where "userId" = $2 and "postId" = p.id) "voteStatus"'
           : 'null as "voteStatus"'
       }
       from post p
-      inner join public.user u on u.id = p."authorId"
       ${cursor ? `where p."createdAt" < $${cursorId}` : ''}
       order by p."createdAt" DESC
       limit $1
     `,
       queryParams
     );
-
     return { posts, hasMore: posts.length === minLimitPlusOne };
   }
 
   @Query(() => Post, { nullable: true })
   getPost(@Arg('id', () => Int) id: number): Promise<Post | undefined> {
-    return Post.findOne(id, { relations: ['author'] });
+    return Post.findOne(id);
   }
 
   @Mutation(() => PostResponse)

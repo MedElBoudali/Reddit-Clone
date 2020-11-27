@@ -14,6 +14,7 @@ import { Post } from './entities/Post';
 import { User } from './entities/User';
 import path from 'path';
 import { Updoot } from './entities/Updoot';
+import { createUserLoader } from './utils/createUserLoader';
 
 const main = async () => {
   const connection: Connection = await createConnection({
@@ -59,7 +60,7 @@ const main = async () => {
   // graphql server
   const apolloServer = new ApolloServer({
     schema: await buildSchema({ resolvers: [PostResolver, UserResolver], validate: false }),
-    context: ({ req, res }) => ({ req, res, redis })
+    context: ({ req, res }) => ({ req, res, redis, userLoader: createUserLoader })
   });
 
   apolloServer.applyMiddleware({ app, cors: false });
