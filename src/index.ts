@@ -1,4 +1,5 @@
 import 'reflect-metadata';
+import 'dotenv-safe/config';
 import { Connection, createConnection } from 'typeorm';
 import express, { Request, Response, NextFunction } from 'express';
 import { ApolloServer } from 'apollo-server-express';
@@ -20,9 +21,7 @@ import { createUpvoteLoader } from './utils/createUpvoteLoader';
 const main = async () => {
   const connection: Connection = await createConnection({
     type: 'postgres',
-    database: 'reddit_clone',
-    username: 'postgres',
-    password: 'postgres',
+    url: process.env.DATABADE_URL,
     logging: true,
     synchronize: !__prod__,
     entities: [Post, User, Updoot],
@@ -77,7 +76,7 @@ const main = async () => {
     res.status(500).json({ message: err.message });
   });
 
-  app.listen(__port__, () => console.log(__listenMessage__(__port__)));
+  app.listen(process.env.PORT, () => console.log(__listenMessage__(Number(process.env.PORT))));
 };
 
 main().catch(err => console.log(err));
