@@ -37,9 +37,9 @@ const main = async () => {
 
   // Redis
   const RedisStore = connectRedis(session);
-  const redis = new Redis();
+  const redis = new Redis(process.env.REDIS_URL);
 
-  app.use(cors({ origin: 'http://localhost:3000', credentials: true }));
+  app.use(cors({ origin: process.env.CORS_ORIGIN, credentials: true }));
   app.use(
     // Redis
     session({
@@ -49,10 +49,11 @@ const main = async () => {
         maxAge: 1000 * 60 * 60 * 24 * 365 * 10, //10 years
         httpOnly: true,
         sameSite: 'lax', // protecting against csrf
-        secure: __prod__ // cookie works only on https
+        secure: __prod__, // cookie works only on https
+        domain: __prod__ ? '.domain.com' : undefined // add your domain here for production
       },
       saveUninitialized: false,
-      secret: 'fzefzcefevcczgjnkukjgscercqzgsevhevcg',
+      secret: process.env.SESSION_SECRET,
       resave: false
     })
   );
@@ -76,7 +77,9 @@ const main = async () => {
     res.status(500).json({ message: err.message });
   });
 
-  app.listen(process.env.PORT, () => console.log(__listenMessage__(Number(process.env.PORT))));
+  app.listen(parseInt(process.env.PORT), () =>
+    console.log(__listenMessage__(parseInt(process.env.PORT)))
+  );
 };
 
 main().catch(err => console.log(err));
