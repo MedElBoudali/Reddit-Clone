@@ -4,7 +4,7 @@ import { Connection, createConnection } from 'typeorm';
 import express, { Request, Response, NextFunction } from 'express';
 import { ApolloServer } from 'apollo-server-express';
 import { buildSchema } from 'type-graphql';
-import { cookieName, __listenMessage__, __port__, __prod__ } from './config/constants';
+import { cookieName, __listenMessage__, __prod__ } from './config/constants';
 import { PostResolver } from './resolvers/post';
 import { UserResolver } from './resolvers/user';
 import Redis from 'ioredis';
@@ -17,6 +17,17 @@ import path from 'path';
 import { Updoot } from './entities/Updoot';
 import { createUserLoader } from './utils/createUserLoader';
 import { createUpvoteLoader } from './utils/createUpvoteLoader';
+
+// const typeormDevConfig = {
+//   type: 'postgres',
+//   database: 'reddit_clone',
+//   username: 'postgres',
+//   password: 'postgres',
+//   logging: true,
+//   synchronize: !__prod__,
+//   entities: [Post, User, Updoot],
+//   migrations: [path.join(__dirname, './migrations/*')]
+// };
 
 const main = async () => {
   const connection: Connection = await createConnection({
