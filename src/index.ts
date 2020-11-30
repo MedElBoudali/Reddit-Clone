@@ -36,10 +36,10 @@ const main = async () => {
     logging: true,
     synchronize: !__prod__,
     entities: [Post, User, Updoot],
-    migrations: [path.join(__dirname, './migrations/*')]
+    // migrations: [path.join(__dirname, './migrations/*')]
   });
 
-  await connection.runMigrations();
+  // await connection.runMigrations();
 
   // clear post table before migration
   // await Post.delete({});
