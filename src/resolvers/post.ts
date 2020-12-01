@@ -44,6 +44,14 @@ class PostResponse {
 }
 
 @ObjectType()
+class VoteResponse {
+  @Field(() => ErrorField, { nullable: true })
+  error?: ErrorField;
+  @Field({ nullable: true })
+  isVote?: boolean;
+}
+
+@ObjectType()
 class PaginatedPosts {
   @Field(() => [Post])
   posts: Post[];
@@ -54,7 +62,7 @@ class PaginatedPosts {
 @Resolver(Post)
 export class PostResolver {
   // Votes
-  @Mutation(() => Boolean)
+  @Mutation(() => VoteResponse)
   @UseMiddleware(isAuth) // check if logged in
   async vote(
     @Arg('postId', () => Int) postId: number,
@@ -65,6 +73,7 @@ export class PostResolver {
     const realValue = isUpdoot ? 1 : -1;
     const { userId } = req.session;
     const updoot = await Updoot.findOne({ where: { postId, userId } });
+    console.log(updoot);
     // if the user has voted on the post before
     // and he want to change the value
     if (updoot && updoot.value !== realValue) {
@@ -116,7 +125,7 @@ export class PostResolver {
       });
     }
 
-    return true;
+    return { isVote: true };
   }
 
   // add new field to return 100 letter
