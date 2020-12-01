@@ -13,7 +13,6 @@ import connectRedis from 'connect-redis';
 import cors from 'cors';
 import { Post } from './entities/Post';
 import { User } from './entities/User';
-import path from 'path';
 import { Updoot } from './entities/Updoot';
 import { createUserLoader } from './utils/createUserLoader';
 import { createUpvoteLoader } from './utils/createUpvoteLoader';
